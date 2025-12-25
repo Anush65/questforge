@@ -5,5 +5,5 @@ class JudgeAssignment(Base):
     __tablename__ = "judge_assignments"
 
     id = Column(Integer, primary_key=True)
-    judge_id = Column(Integer, ForeignKey("users.id"))
+    judge_id = Column(Integer, ForeignKey("judges.id"))
     team_id = Column(Integer, ForeignKey("teams.id"))
