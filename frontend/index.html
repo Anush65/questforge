@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hackathon Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Login Page -->
+    <div class="login-container" id="mainLogin">
+        <h1 class="login-title">Hackathon Platform</h1>
+        <div class="role-boxes">
+            <div class="role-box judge" onclick="showLogin('judge')">
+                <h3>👨‍⚖️ Judge</h3>
+                <p>Join hackathon</p>
+            </div>
+            <div class="role-box participant" onclick="showLogin('participant')">
+                <h3>👨‍💻 Participant</h3>
+                <p>Submit your code</p>
+            </div>
+            <div class="role-box admin" onclick="showLogin('admin')">
+                <h3>⚙️ Admin</h3>
+                <p>Manage hackathon</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Forms -->
+    <div class="login-container" id="loginForms" style="display: none;">
+        <div id="judgeLogin" class="login-form">
+            <h2>Judge Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="judgeUsername" placeholder="judge123">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="judgePassword" placeholder="password">
+            </div>
+            <button class="login-btn" onclick="login('judge')">Login</button>
+            <button class="login-btn back-btn" onclick="showMainLogin()">← Back</button>
+        </div>
+
+        <div id="participantLogin" class="login-form">
+            <h2>Participant Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="participantUsername" placeholder="participant1">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="participantPassword" placeholder="password">
+            </div>
+            <button class="login-btn" onclick="login('participant')">Login</button>
+            <button class="login-btn back-btn" onclick="showMainLogin()">← Back</button>
+        </div>
+
+        <div id="adminLogin" class="login-form">
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="adminUsername" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="adminPassword" placeholder="password">
+            </div>
+            <button class="login-btn" onclick="login('admin')">Login</button>
+            <button class="login-btn back-btn" onclick="showMainLogin()">← Back</button>
+        </div>
+    </div>
+
+    <!-- Judge Dashboard - UPDATED -->
+    <div class="dashboard" id="judgeDashboard">
+        <div class="dashboard-header">
+            <h1>👨‍⚖️ Judge Dashboard</h1>
+            <p>Join hackathon using party code</p>
+        </div>
+        
+        <div class="hackathon-join-container">
+            <div class="join-header">
+                <h3>🎉 Join Hackathon</h3>
+                <div id="connectionStatus"></div>
+            </div>
+            <textarea class="hackathon-code-input" id="hackathonCodeInput" 
+                      placeholder="Paste hackathon party code here...
+Example: HACK2026-JUDGE-XYZ123
+H4CK4TH0N-V3R5ION-ABC789"></textarea>
+            <button class="join-btn" id="joinBtn" onclick="joinHackathon()">Join Hackathon</button>
+            <div id="currentHackathonInfo" class="current-hackathon" style="display: none;">
+                <strong>Currently Connected:</strong>
+                <div id="currentHackathonName"></div>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem; color: #333;">Your Hackathons:</h3>
+        <div class="hackathon-list" id="hackathonList">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+
+    <!-- Placeholder Dashboards -->
+    <div class="dashboard" id="participantDashboard">
+        <div class="dashboard-header">
+            <h1>👨‍💻 Participant Dashboard</h1>
+            <p>Coming soon...</p>
+        </div>
+    </div>
+
+    <div class="dashboard" id="adminDashboard">
+        <div class="dashboard-header">
+            <h1>⚙️ Admin Dashboard</h1>
+            <p>Coming soon...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
