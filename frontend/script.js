@@ -16,11 +16,11 @@ const sampleHackathons = [
 function showLogin(role) {
     document.getElementById('mainLogin').style.display = 'none';
     document.getElementById('loginForms').style.display = 'block';
-    
+
     document.querySelectorAll('.login-form').forEach(form => {
         form.classList.remove('active');
     });
-    
+
     document.getElementById(role + 'Login').classList.add('active');
     currentRole = role;
 }
@@ -48,9 +48,9 @@ function showDashboard(role) {
     document.querySelectorAll('.dashboard').forEach(dash => dash.classList.remove('active'));
     document.getElementById('loginForms').style.display = 'none';
     document.getElementById('mainLogin').style.display = 'none';
-    
+
     document.getElementById(role + 'Dashboard').classList.add('active');
-    
+
     if (role === 'judge') {
         populateHackathonList();
     }
@@ -59,14 +59,14 @@ function showDashboard(role) {
 function joinHackathon() {
     const codeInput = document.getElementById('hackathonCodeInput').value.trim();
     const btn = document.getElementById('joinBtn');
-    
+
     if (!codeInput) {
         alert('Please paste a hackathon code!');
         return;
     }
 
     // Find matching hackathon
-    const hackathon = sampleHackathons.find(h => 
+    const hackathon = sampleHackathons.find(h =>
         h.code.toLowerCase() === codeInput.toLowerCase()
     );
 
@@ -75,14 +75,14 @@ function joinHackathon() {
         btn.textContent = '✅ Connected!';
         btn.classList.add('connected');
         document.getElementById('connectionStatus').innerHTML = '🟢 Connected';
-        
+
         // Show current hackathon info
         document.getElementById('currentHackathonName').textContent = hackathon.name;
         document.getElementById('currentHackathonInfo').style.display = 'block';
-        
+
         // Update list
         populateHackathonList();
-        
+
         // Copy code to display
         document.getElementById('hackathonCodeInput').style.height = '120px';
     } else {
@@ -94,30 +94,24 @@ function populateHackathonList() {
     const listContainer = document.getElementById('hackathonList');
     listContainer.innerHTML = '';
 
-    sampleHackathons.forEach(hackathon => {
-        const isCurrent = currentHackathon && currentHackathon.code === hackathon.code;
-        const isConnected = currentHackathon === hackathon;
-        
+    if (currentHackathon) {
         const card = document.createElement('div');
-        card.className = `hackathon-card ${isCurrent ? 'current' : ''}`;
+        card.className = 'hackathon-card current';
         card.innerHTML = `
-            <div class="hackathon-title">${hackathon.name}</div>
-            <div class="hackathon-status ${isConnected ? 'status-connected' : 'status-disconnected'}">
-                ${isConnected ? '✅ Active Session' : '🔌 Join to Connect'}
+            <div class="hackathon-title">${currentHackathon.name}</div>
+            <div class="hackathon-status status-connected">
+                ✅ Active Session
             </div>
             <div class="hackathon-status status-participants">
-                👥 ${hackathon.participants} participants
-            </div>
-            <div class="code-display">
-                📋 Code: ${hackathon.code}
+                👥 ${currentHackathon.participants} participants
             </div>
         `;
         listContainer.appendChild(card);
-    });
+    }
 }
 
 // Allow Enter key for login and join
-document.addEventListener('keypress', function(e) {
+document.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
         const activeForm = document.querySelector('.login-form.active');
         if (activeForm) {
