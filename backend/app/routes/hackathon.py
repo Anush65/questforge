@@ -88,3 +88,23 @@ def unfreeze_hackathon(hackathon_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Submissions reopened"}
+
+@router.put("/{hackathon_id}")
+def update_hackathon(
+    hackathon_id: int,
+    payload: HackathonCreateRequest,
+    db: Session = Depends(get_db)
+):
+    hackathon = db.query(Hackathon).filter(Hackathon.id == hackathon_id).first()
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+    
+    hackathon.name = payload.name
+    if payload.invite_code:
+        hackathon.invite_code = payload.invite_code
+    hackathon.is_frozen = payload.is_frozen
+    
+    db.commit()
+    db.refresh(hackathon)
+    
+    return hackathon

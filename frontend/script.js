@@ -68,7 +68,8 @@ const DB = {
 let state = {
     currentUser: null, // User Object
     connectedHackathon: null,
-    loginTargetRole: null
+    loginTargetRole: null,
+    currentTeamId: null // Store team ID for filtering submissions
 };
 
 // --- NAVIGATION ---
@@ -80,7 +81,10 @@ const views = {
 };
 
 function showLanding() {
-    state = { currentUser: null, connectedHackathon: null, loginTargetRole: null };
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:83',message:'showLanding called',data:{stack:new Error().stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    state = { currentUser: null, connectedHackathon: null, loginTargetRole: null, currentTeamId: null };
     switchView('landing');
 }
 
@@ -223,11 +227,15 @@ async function handleLogin() {
                 password: passwordInput,
                 role: targetRole, // backend checks this? No, backend checks DB role.
                 name: "Unknown" // Placeholder required by schema
-            })
+            }),
+            redirect: 'manual' // Don't follow redirects automatically
         });
 
         if (res.ok) {
             const data = await res.json();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:232',message:'Login response received',data:{role:data.role,judge_id:data.judge_id,has_judge_id:data.judge_id!=null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             // Verify Role
             if (data.role !== targetRole && targetRole !== 'admin') {
                 // Admin might login as others? No, strict role check.
@@ -239,8 +247,22 @@ async function handleLogin() {
                 username: data.username,
                 role: data.role,
                 name: data.name,
-                token: data.access_token
+                token: data.access_token,
+                id: data.id,
+                judge_id: data.judge_id || null
             };
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:246',message:'State.currentUser set after login',data:{role:state.currentUser.role,judge_id:state.currentUser.judge_id,has_judge_id:state.currentUser.judge_id!=null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            
+            // Debug: Log judge_id to help troubleshoot
+            if (data.role === 'judge') {
+                console.log('Judge logged in - judge_id:', data.judge_id);
+                if (!data.judge_id) {
+                    console.warn('WARNING: Judge logged in but judge_id is null/undefined');
+                    showToast('WARNING: JUDGE_ID_NOT_SET_PLEASE_CONTACT_ADMIN', 'error');
+                }
+            }
 
             showDashboard();
             showToast(`AUTHENTICATED: ${data.username.toUpperCase()}`, 'success');
@@ -263,6 +285,9 @@ function closeSubmissionModal() {
 }
 
 async function submitProject() {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:278',message:'submitProject called',data:{has_currentUser:state.currentUser!=null,role:state.currentUser?.role,has_connectedHackathon:state.connectedHackathon!=null,dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     const token = document.getElementById('subTeamToken').value.trim();
     const github = document.getElementById('subGithub').value;
     const prototype = document.getElementById('subPrototype').value;
@@ -292,21 +317,83 @@ async function submitProject() {
         });
 
         if (res.ok) {
+            const result = await res.json();
+            // Store team_id from response for filtering submissions
+            if (result.team_id) {
+                state.currentTeamId = result.team_id;
+            }
+            
             showToast('SUCCESS: PROJECT_UPLOADED_TO_CORE', 'success');
+            
+            // Clear form fields first
+            document.getElementById('subTeamToken').value = '';
+            document.getElementById('subGithub').value = '';
+            document.getElementById('subPrototype').value = '';
+            document.getElementById('subVideo').value = '';
+            document.getElementById('subPresentation').value = '';
+            document.getElementById('subUSP').value = '';
+            document.getElementById('subReport').value = '';
+            
+            // Close modal
             closeSubmissionModal();
-            // Refresh dashboard with new data
-            fetchAppState();
+            
+            // IMPORTANT: Ensure we stay on dashboard and don't redirect
+            // Make sure dashboard view is visible and user is still logged in
+            if (!state.currentUser || state.currentUser.role !== 'participant') {
+                showToast('ERROR: SESSION_EXPIRED', 'error');
+                return;
+            }
+            
+            // Ensure dashboard view is visible
+            if (views.dashboard.classList.contains('hidden')) {
+                switchView('dashboard');
+            }
+            
+            // Ensure dashboard header is set correctly
+            document.getElementById('userRoleTitle').textContent = 'PARTICIPANT_DASHBOARD';
+            document.getElementById('userWelcome').textContent = `> AUTHENTICATED_USER: ${state.currentUser.name} [${state.currentUser.username}]`;
+            
+            // Refresh only the participant dashboard without redirecting
+            // Preserve the connected hackathon state
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:346',message:'Before renderParticipantDashboard',data:{has_currentUser:state.currentUser!=null,has_connectedHackathon:state.connectedHackathon!=null,dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            try {
+                const container = document.getElementById('dashboardContent');
+                await renderParticipantDashboard(container);
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:349',message:'After renderParticipantDashboard success',data:{dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                // #endregion
+            } catch (renderError) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:352',message:'renderParticipantDashboard error',data:{error:renderError.message,stack:renderError.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                console.error('Error rendering participant dashboard:', renderError);
+                // Don't redirect on render error, just show error toast
+                showToast('ERROR: DASHBOARD_REFRESH_FAILED', 'error');
+            }
         } else {
             const err = await res.json();
             showToast(`ERROR: ${err.detail || 'SUBMISSION_FAILED'}`, 'error');
         }
     } catch (e) {
+        console.error('Submission error:', e);
         showToast('ERROR: UPLOAD_FAILED', 'error');
+        // Don't redirect on error - stay on dashboard
+        if (state.currentUser && views.dashboard.classList.contains('hidden')) {
+            switchView('dashboard');
+        }
     }
 }
 
 // --- DASHBOARDS ---
 function showDashboard() {
+    // Safety check: don't show dashboard if user is not logged in
+    if (!state.currentUser) {
+        console.warn('showDashboard called but no user logged in');
+        return;
+    }
+    
     switchView('dashboard');
     const role = state.currentUser.role;
 
@@ -319,7 +406,10 @@ function showDashboard() {
 
     if (role === 'judge') renderJudgeDashboard(container);
     else if (role === 'participant') renderParticipantDashboard(container);
-    else if (role === 'admin') renderAdminDashboard(container);
+    else if (role === 'admin') {
+        // Admin dashboard is async
+        renderAdminDashboard(container);
+    }
 }
 
 // 1. JUDGE DASHBOARD
@@ -347,7 +437,7 @@ async function renderJudgeDashboard(container) {
         // Fetch Submissions
         let submissions = [];
         try {
-            const res = await fetch(`${API_BASE}/submissions?hackathon_id=${h.id}`);
+            const res = await fetch(`${API_BASE}/submissions/?hackathon_id=${h.id}`);
             if (res.ok) submissions = await res.json();
             else console.error('Failed to fetch submissions');
         } catch (e) {
@@ -410,7 +500,7 @@ async function renderJudgeDashboard(container) {
 
                         <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem; display: flex; justify-content: flex-end; items-align: center; gap: 1rem;">
                              <input type="number" id="score-${s.id}" class="input-field" placeholder="0.0 - 10.0" step="0.1" min="0" max="10" style="width: 120px;">
-                             <button type="button" class="btn btn-primary" onclick="submitGrade('${s.id}', '${s.team_id}')">SUBMIT_SCORE</button>
+                             <button type="button" class="btn btn-primary" onclick="submitGrade('${s.id}', '${s.team_id}'); return false;">SUBMIT_SCORE</button>
                         </div>
                     </div>
                 `).join('')}
@@ -463,20 +553,48 @@ async function analyzeProject(subId) {
 
 // UPDATED SUBMIT GRADE
 async function submitGrade(subId, teamId) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:534',message:'submitGrade called',data:{has_currentUser:state.currentUser!=null,role:state.currentUser?.role,judge_id:state.currentUser?.judge_id,has_judge_id:state.currentUser?.judge_id!=null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     const scoreInput = document.getElementById(`score-${subId}`);
     const scoreVal = parseFloat(scoreInput.value);
-
-    // console.log("Grading:", subId, teamId, scoreVal); // Debug
 
     if (isNaN(scoreVal) || scoreVal < 0 || scoreVal > 10) {
         showToast("ERROR: INVALID_SCORE (0.0 - 10.0)", 'error');
         return;
     }
 
+    // Check if user is logged in and is a judge
+    if (!state.currentUser) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:547',message:'submitGrade - no currentUser',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        showToast('ERROR: NOT_LOGGED_IN', 'error');
+        return false;
+    }
+
+    if (state.currentUser.role !== 'judge') {
+        showToast('ERROR: NOT_AUTHORIZED_TO_EVALUATE', 'error');
+        return false;
+    }
+
     try {
-        let jId = 1; // Default
-        if (state.currentUser && state.currentUser.id && !isNaN(state.currentUser.id)) {
-            jId = parseInt(state.currentUser.id);
+        // Get judge_id from currentUser (set during login)
+        let jId = null;
+        if (state.currentUser.judge_id) {
+            jId = parseInt(state.currentUser.judge_id);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:561',message:'submitGrade - judge_id found',data:{judge_id:jId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+        } else {
+            // This should not happen if login worked correctly
+            // But if it does, we'll show a helpful error
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:565',message:'submitGrade - judge_id NOT found',data:{currentUser:state.currentUser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            showToast('ERROR: JUDGE_ID_NOT_FOUND_PLEASE_RELOGIN', 'error');
+            console.error('Judge ID not found in state.currentUser:', state.currentUser);
+            return false;
         }
 
         const payload = {
@@ -492,16 +610,52 @@ async function submitGrade(subId, teamId) {
         });
 
         if (res.ok) {
-            showToast(`SUCCESS: EVALUATION_RECORDED: ${scoreVal}`, 'success');
+            const result = await res.json();
+            const message = result.message || 'Evaluation recorded';
+            showToast(`SUCCESS: ${message.toUpperCase()}: ${scoreVal}`, 'success');
             scoreInput.disabled = true;
             scoreInput.parentElement.querySelector('button').textContent = "GRADED";
             scoreInput.parentElement.querySelector('button').disabled = true;
+            
+            // Refresh judge dashboard without redirecting
+            // Preserve the connected hackathon state
+            if (!state.currentUser || state.currentUser.role !== 'judge') {
+                showToast('ERROR: SESSION_EXPIRED', 'error');
+                return;
+            }
+            
+            // Ensure dashboard view is visible
+            if (views.dashboard.classList.contains('hidden')) {
+                switchView('dashboard');
+            }
+            
+            // Ensure dashboard header is set correctly
+            document.getElementById('userRoleTitle').textContent = 'JUDGE_DASHBOARD';
+            document.getElementById('userWelcome').textContent = `> AUTHENTICATED_USER: ${state.currentUser.name} [${state.currentUser.username}]`;
+            
+            // Refresh only the judge dashboard content
+            try {
+                const container = document.getElementById('dashboardContent');
+                await renderJudgeDashboard(container);
+            } catch (renderError) {
+                console.error('Error rendering judge dashboard:', renderError);
+                showToast('ERROR: DASHBOARD_REFRESH_FAILED', 'error');
+            }
         } else {
             const err = await res.json();
             showToast(`ERROR: ${err.detail || 'GRADING_FAILED'}`, 'error');
+            // Don't redirect on error - stay on dashboard
+            if (state.currentUser && views.dashboard.classList.contains('hidden')) {
+                switchView('dashboard');
+            }
         }
     } catch (e) {
+        console.error('Evaluation error:', e);
         showToast('ERROR: SUBMISSION_FAILED', 'error');
+        // Don't redirect on error - stay on dashboard
+        if (state.currentUser && views.dashboard.classList.contains('hidden')) {
+            switchView('dashboard');
+        }
     }
 }
 
@@ -568,6 +722,9 @@ function renderHackathonList() {
 
 // 2. PARTICIPANT DASHBOARD
 async function renderParticipantDashboard(container) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:724',message:'renderParticipantDashboard entry',data:{has_connectedHackathon:state.connectedHackathon!=null,has_currentUser:state.currentUser!=null,role:state.currentUser?.role,dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
     if (!state.connectedHackathon) {
         // Show hackathon join interface (similar to judge)
         container.innerHTML = `
@@ -606,14 +763,23 @@ async function renderParticipantDashboard(container) {
 
         // Fetch team info for this hackathon
         let teamInfo = null;
+        let myTeamId = null;
         try {
-            // Try to get team by hackathon - for now we'll use the first team for this hackathon
-            // In a real app, we'd link user to team properly
+            // Try to get team by hackathon - use stored team_id if available, otherwise use first team
             const teamsRes = await fetch(`${API_BASE}/teams?hackathon_id=${h.id}`);
             if (teamsRes.ok) {
                 const teams = await teamsRes.json();
                 if (teams.length > 0) {
-                    teamInfo = teams[0]; // Use first team for demo
+                    // Use stored team_id if available, otherwise use first team
+                    if (state.currentTeamId) {
+                        teamInfo = teams.find(t => t.id === state.currentTeamId) || teams[0];
+                        myTeamId = state.currentTeamId;
+                    } else {
+                        teamInfo = teams[0]; // Use first team for demo
+                        myTeamId = teams[0].id;
+                        // Store it for future use
+                        state.currentTeamId = teams[0].id;
+                    }
                 }
             }
         } catch (e) {
@@ -621,13 +787,19 @@ async function renderParticipantDashboard(container) {
         }
 
         // Fetch submissions for this hackathon
-        let submissions = [];
+        let allSubmissions = [];
         try {
-            const res = await fetch(`${API_BASE}/submissions?hackathon_id=${h.id}`);
-            if (res.ok) submissions = await res.json();
+            const res = await fetch(`${API_BASE}/submissions/?hackathon_id=${h.id}`);
+            if (res.ok) allSubmissions = await res.json();
         } catch (e) {
             console.error('Failed to fetch submissions:', e);
         }
+
+        // Filter submissions to show only this participant's team submissions
+        // Use stored team_id if available, otherwise show all (fallback)
+        const submissions = myTeamId 
+            ? allSubmissions.filter(s => s.team_id === myTeamId)
+            : allSubmissions;
 
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -691,13 +863,24 @@ async function renderParticipantDashboard(container) {
                     <div class="card" style="padding: 1rem;">
                         <div style="display: flex; justify-content: space-between;">
                             <div>
-                                <div style="font-weight: bold; color: var(--cyber-cyan);">${s.title}</div>
-                                <div style="font-size: 0.8rem;">TEAM: ${s.team_name}</div>
+                                <div style="font-weight: bold; color: var(--cyber-cyan);">${s.title || 'Untitled Project'}</div>
+                                <div style="font-size: 0.8rem; margin-top: 0.5rem;">TEAM: ${s.team_name}</div>
+                                ${s.usp ? `<div style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary); font-style: italic;">${s.usp}</div>` : ''}
                             </div>
                             <div style="text-align: right;">
                                  <div class="btn-ghost" style="font-size: 0.8rem;">STATUS: SUBMITTED</div>
                             </div>
                         </div>
+                        ${s.github_url ? `
+                            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-ghost" style="border: 1px solid var(--border-subtle); font-size: 0.8rem; padding: 0.3rem 0.8rem;" 
+                                    onclick="window.open('${s.github_url}', '_blank')">GITHUB_REPO</button>
+                                ${s.video_url ? `<button class="btn btn-ghost" style="border: 1px solid var(--border-subtle); font-size: 0.8rem; padding: 0.3rem 0.8rem;" 
+                                    onclick="window.open('${s.video_url}', '_blank')">VIDEO</button>` : ''}
+                                ${s.prototype_url ? `<button class="btn btn-ghost" style="border: 1px solid var(--border-subtle); font-size: 0.8rem; padding: 0.3rem 0.8rem;" 
+                                    onclick="window.open('${s.prototype_url}', '_blank')">DEMO</button>` : ''}
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('')}
             </div>
@@ -755,7 +938,27 @@ document.getElementById('confirmActionBtn').addEventListener('click', () => {
 
 
 // 3. ADMIN DASHBOARD - UPDATED
-function renderAdminDashboard(container) {
+async function renderAdminDashboard(container) {
+    // Fetch hackathons with team counts
+    let hackathonsWithStats = [];
+    for (const h of DB.hackathons) {
+        try {
+            const teamsRes = await fetch(`${API_BASE}/teams?hackathon_id=${h.id}`);
+            const teams = teamsRes.ok ? await teamsRes.json() : [];
+            hackathonsWithStats.push({
+                ...h,
+                team_count: teams.length,
+                is_frozen: h.status === 'frozen'
+            });
+        } catch (e) {
+            hackathonsWithStats.push({
+                ...h,
+                team_count: 0,
+                is_frozen: h.status === 'frozen'
+            });
+        }
+    }
+
     container.innerHTML = `
         <div class="card" style="margin-bottom: 2rem; border-color: var(--electric-blue);">
             <h3 style="color: var(--electric-blue);">GLOBAL_CONTROLS</h3>
@@ -767,14 +970,21 @@ function renderAdminDashboard(container) {
 
         <h4 style="margin-bottom: 1rem;">SYSTEM_EVENTS</h4>
         <div style="display: grid; gap: 1rem;">
-            ${DB.hackathons.map(h => `
-                <div class="card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: bold;">${h.name}</div>
-                        <div style="font-size: 0.8rem; font-family: var(--font-code);">${h.code}</div>
-                    </div>
-                    <div>
-                        <button class="btn btn-ghost" style="font-size: 0.8rem; color: #ff4444;" onclick="requestDeleteHackathon('${h.id}')">DELETE</button>
+            ${hackathonsWithStats.map(h => `
+                <div class="card" style="padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; font-size: 1.1rem;">${h.name}</div>
+                            <div style="font-size: 0.8rem; font-family: var(--font-code); margin-top: 0.3rem;">CODE: ${h.code}</div>
+                            <div style="font-size: 0.85rem; margin-top: 0.5rem; color: var(--text-secondary);">
+                                > TEAMS_REGISTERED: <span style="color: var(--matrix-green);">${h.team_count}</span>
+                            </div>
+                            ${h.is_frozen ? '<div style="font-size: 0.85rem; margin-top: 0.3rem; color: #ff4444;">⚠️ SUBMISSIONS_FROZEN</div>' : '<div style="font-size: 0.85rem; margin-top: 0.3rem; color: var(--matrix-green);">✓ SUBMISSIONS_OPEN</div>'}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-ghost" style="font-size: 0.8rem; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan);" onclick="editHackathon(${h.id})">EDIT</button>
+                            <button class="btn btn-ghost" style="font-size: 0.8rem; color: #ff4444;" onclick="requestDeleteHackathon(${h.id})">DELETE</button>
+                        </div>
                     </div>
                 </div>
             `).join('')}
@@ -859,8 +1069,192 @@ function exportUserData() {
     }, 1000);
 }
 
+// --- EDIT HACKATHON MODAL LOGIC ---
+let editingHackathonId = null;
+
+async function editHackathon(hackathonId) {
+    editingHackathonId = hackathonId;
+    
+    // Find hackathon in DB
+    const hackathon = DB.hackathons.find(h => h.id === hackathonId);
+    if (!hackathon) {
+        showToast('ERROR: HACKATHON_NOT_FOUND', 'error');
+        return;
+    }
+
+    // Populate form
+    document.getElementById('editEventName').value = hackathon.name;
+    document.getElementById('editEventCode').value = hackathon.code;
+    
+    // Fetch current hackathon details from backend
+    try {
+        const res = await fetch(`${API_BASE}/hackathons/`);
+        if (res.ok) {
+            const hackathons = await res.json();
+            const fullHackathon = hackathons.find(h => h.id === hackathonId);
+            if (fullHackathon) {
+                document.getElementById('editEventFrozen').checked = fullHackathon.is_frozen || false;
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch hackathon details:', e);
+    }
+
+    // Load teams
+    await loadHackathonTeams(hackathonId);
+    
+    // Load judge assignments
+    await loadJudgeAssignments(hackathonId);
+    
+    // Load leaderboard
+    await loadHackathonLeaderboard(hackathonId);
+
+    // Show modal
+    document.getElementById('editHackathonModal').classList.remove('hidden');
+}
+
+function closeEditHackathonModal() {
+    document.getElementById('editHackathonModal').classList.add('hidden');
+    editingHackathonId = null;
+}
+
+async function loadHackathonTeams(hackathonId) {
+    const container = document.getElementById('editHackathonTeams');
+    try {
+        const res = await fetch(`${API_BASE}/teams?hackathon_id=${hackathonId}`);
+        if (res.ok) {
+            const teams = await res.json();
+            container.innerHTML = `
+                <h4 style="margin-bottom: 0.5rem;">REGISTERED_TEAMS (${teams.length})</h4>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.5rem; border-radius: 4px;">
+                    ${teams.length === 0 ? '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_TEAMS_REGISTERED</div>' : ''}
+                    ${teams.map(t => `
+                        <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem;">
+                            <div style="font-weight: bold;">${t.team_name}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">Project: ${t.project_title}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; font-family: var(--font-code);">Token: ${t.team_token}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="color: #ff4444;">ERROR_LOADING_TEAMS</div>';
+    }
+}
+
+async function loadJudgeAssignments(hackathonId) {
+    const container = document.getElementById('editHackathonAssignments');
+    try {
+        const res = await fetch(`${API_BASE}/assignments/hackathon/${hackathonId}`);
+        if (res.ok) {
+            const assignments = await res.json();
+            
+            // Group by judge
+            const byJudge = {};
+            assignments.forEach(a => {
+                if (!byJudge[a.judge_name]) {
+                    byJudge[a.judge_name] = [];
+                }
+                byJudge[a.judge_name].push(a);
+            });
+
+            container.innerHTML = `
+                <h4 style="margin-bottom: 0.5rem;">JUDGE_ASSIGNMENTS</h4>
+                <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.5rem; border-radius: 4px;">
+                    ${Object.keys(byJudge).length === 0 ? '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_ASSIGNMENTS_YET</div>' : ''}
+                    ${Object.entries(byJudge).map(([judgeName, teams]) => `
+                        <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); margin-bottom: 0.5rem;">
+                            <div style="font-weight: bold; color: var(--cyber-cyan);">${judgeName}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+                                ${teams.map(t => t.team_name).join(', ')}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">(${teams.length} team${teams.length !== 1 ? 's' : ''})</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_ASSIGNMENTS_YET</div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_ASSIGNMENTS_YET</div>';
+    }
+}
+
+async function loadHackathonLeaderboard(hackathonId) {
+    const container = document.getElementById('editHackathonLeaderboard');
+    try {
+        const res = await fetch(`${API_BASE}/leaderboard?hackathon_id=${hackathonId}`);
+        if (res.ok) {
+            const leaderboard = await res.json();
+            container.innerHTML = `
+                <h4 style="margin-bottom: 0.5rem;">LEADERBOARD</h4>
+                <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.5rem; border-radius: 4px;">
+                    ${leaderboard.length === 0 ? '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_EVALUATIONS_YET</div>' : ''}
+                    ${leaderboard.map((entry, index) => `
+                        <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-weight: bold; color: var(--matrix-green);">#${index + 1}</span>
+                                <span style="margin-left: 0.5rem;">${entry.team_name}</span>
+                            </div>
+                            <div style="font-weight: bold; color: var(--cyber-cyan);">${entry.score.toFixed(2)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_EVALUATIONS_YET</div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_EVALUATIONS_YET</div>';
+    }
+}
+
+async function confirmEditHackathon() {
+    if (!editingHackathonId) return;
+
+    const name = document.getElementById('editEventName').value;
+    const code = document.getElementById('editEventCode').value;
+    const isFrozen = document.getElementById('editEventFrozen').checked;
+
+    if (!name || !code) {
+        showToast("ERROR: NAME_AND_CODE_REQUIRED", 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/hackathons/${editingHackathonId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                invite_code: code,
+                is_frozen: isFrozen
+            })
+        });
+
+        if (res.ok) {
+            showToast("SUCCESS: HACKATHON_UPDATED", 'success');
+            closeEditHackathonModal();
+            fetchAppState();
+        } else {
+            const err = await res.json();
+            showToast(`ERROR: ${err.detail || 'UPDATE_FAILED'}`, 'error');
+        }
+    } catch (e) {
+        showToast("ERROR: BACKEND_ISSUE", 'error');
+    }
+}
+
 // --- GLOBAL STATE FETCH ---
+let isRefreshing = false; // Flag to prevent multiple simultaneous refreshes
+
 async function fetchAppState() {
+    // Prevent multiple simultaneous calls
+    if (isRefreshing) return;
+    isRefreshing = true;
+    
     try {
         // 1. Fetch Hackathons
         const hRes = await fetch(`${API_BASE}/hackathons/`);
@@ -875,30 +1269,15 @@ async function fetchAppState() {
         }
 
         // 2. Fetch All Submissions (For Participant Dashboard mainly)
-        // Note: list_submissions returns ALL if no hackathon_id provided, 
-        // OR we can filter client side.
-        // Actually, let's fetch ALL for now to populate DB.submissions
         const sRes = await fetch(`${API_BASE}/submissions/`);
         if (sRes.ok) {
             const sList = await sRes.json();
-            // Map backend response to frontend DB structure
             DB.submissions = sList.map(s => ({
                 id: s.id,
-                userId: 'u1', // Backend doesn't send userId in list yet? Need to fix if vital.
-                // Actually list_submissions joins Team, but not User directly? 
-                // Wait, Submission is linked to TEAM. User is linked to TEAM?
-                // Participant Dashboard filters by `s.userId === state.currentUser.id`.
-                // THIS IS A PROBLEM. The backend list doesn't return who submitted it (User ID).
-                // It returns Team Name.
-                // If I am a participant, I should see MY submissions.
-                // Currently, I can't distinguish my submissions from others using the public list!
-
-                // QUICK FIX: For this Demo, show ALL submissions in Participant Dashboard?
-                // OR assume Client matches Team Name?
-                // Let's just show ALL for now to prove it works, or filter by nothing.
+                userId: 'u1',
                 hackathonId: s.hackathon_id,
                 title: s.title,
-                status: 'submitted', // Backend doesn't have status field?
+                status: 'submitted',
                 score: s.score,
                 team_name: s.team_name,
                 ...s // include urls etc
@@ -906,12 +1285,39 @@ async function fetchAppState() {
         }
 
         // Refresh Current View if Dashboard
-        if (!views.dashboard.classList.contains('hidden')) {
-            showDashboard();
+        // Only refresh if we're not in the middle of a submission/evaluation flow
+        // Preserve connectedHackathon state for participants and judges
+        if (!views.dashboard.classList.contains('hidden') && state.currentUser) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:1287',message:'fetchAppState - refreshing dashboard',data:{has_currentUser:state.currentUser!=null,role:state.currentUser?.role,has_connectedHackathon:state.connectedHackathon!=null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            // Preserve connected hackathon state
+            const wasConnected = state.connectedHackathon;
+            const userRole = state.currentUser.role;
+            
+            // Only refresh if we have a valid user
+            if (userRole === 'participant' || userRole === 'judge' || userRole === 'admin') {
+                // Restore connected hackathon after refresh
+                showDashboard();
+                
+                // Restore connected hackathon if it was set (for participants and judges)
+                if (wasConnected && (userRole === 'participant' || userRole === 'judge')) {
+                    state.connectedHackathon = wasConnected;
+                    // Re-render to show the connected view
+                    const container = document.getElementById('dashboardContent');
+                    if (userRole === 'participant') {
+                        renderParticipantDashboard(container);
+                    } else if (userRole === 'judge') {
+                        renderJudgeDashboard(container);
+                    }
+                }
+            }
         }
 
     } catch (e) {
         console.error("Sync Error", e);
+    } finally {
+        isRefreshing = false;
     }
 }
 // Init fetch

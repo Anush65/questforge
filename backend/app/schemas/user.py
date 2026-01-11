@@ -13,3 +13,5 @@ class Token(BaseModel):
     username: str
     role: str
     name: str
+    id: Optional[int] = None
+    judge_id: Optional[int] = None

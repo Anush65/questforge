@@ -15,9 +15,27 @@ def get_db():
         db.close()
 
 @router.get("/")
-def leaderboard(db: Session = Depends(get_db)):
+def leaderboard(hackathon_id: int = None, db: Session = Depends(get_db)):
     # Fetch raw evaluations via SQL to decouple from ORM objects
-    eval_rows = fetchall("SELECT judge_id, team_id, score FROM evaluations")
+    if hackathon_id:
+        # Filter by hackathon: get team_ids for this hackathon first
+        team_ids = fetchall(
+            "SELECT id FROM teams WHERE hackathon_id = :hackathon_id",
+            {"hackathon_id": hackathon_id}
+        )
+        if not team_ids:
+            return []
+        
+        team_id_list = [str(t["id"]) for t in team_ids]
+        placeholder = ",".join(team_id_list)
+        eval_rows = fetchall(
+            f"SELECT judge_id, team_id, score FROM evaluations WHERE team_id IN ({placeholder})"
+        )
+    else:
+        eval_rows = fetchall("SELECT judge_id, team_id, score FROM evaluations")
+
+    if not eval_rows:
+        return []
 
     normalized = normalize_evaluations_by_judge(eval_rows, target_mean=7)
 
@@ -43,9 +61,9 @@ def leaderboard(db: Session = Depends(get_db)):
             avg = total / count if count else 0.0
             name = name_map.get(tid)
             if name:
-                results.append((name, avg))
+                results.append({"team_name": name, "score": avg, "team_id": tid})
 
     # Order by avg_score desc
-    results.sort(key=lambda x: x[1], reverse=True)
+    results.sort(key=lambda x: x["score"], reverse=True)
 
     return results

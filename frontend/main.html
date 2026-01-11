@@ -32,7 +32,7 @@
                 </h1>
                 <p class="hero-subtitle">
                     > INITIALIZING NEXT-GEN HACKATHON PROTOCOL...<br>
-                    > CONNECTING JUDGES, DEVS, AND ADMINS...
+                    > CONNECTING JUDGES, DEVELOPERS, AND ADMINS...
                 </p>
             </div>
 
@@ -240,6 +240,50 @@
                         <button class="btn btn-ghost" onclick="closeCreateEventModal()">ABORT</button>
                         <button type="button" class="btn btn-primary"
                             onclick="confirmCreateHackathon(); return false;">INITIALIZE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: EDIT HACKATHON MODAL -->
+            <div id="editHackathonModal" class="modal-overlay hidden">
+                <div class="card modal-content" style="max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                    <h3 style="margin-bottom: 1rem;">EDIT_HACKATHON</h3>
+                    <p style="font-family: var(--font-code); font-size: 0.8rem; margin-bottom: 1rem; color: var(--text-secondary);">
+                        > MODIFY_EVENT_CONFIGURATION
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label">EVENT_NAME</label>
+                        <input type="text" id="editEventName" class="input-field" placeholder="GLOBAL_AI_CI">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">INVITE_CODE</label>
+                        <input type="text" id="editEventCode" class="input-field" placeholder="HACK-2025">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="editEventFrozen" style="width: auto;">
+                            FREEZE_SUBMISSIONS (Teams cannot submit further)
+                        </label>
+                    </div>
+
+                    <div id="editHackathonTeams" style="margin-top: 1.5rem;">
+                        <!-- Teams will be loaded here -->
+                    </div>
+
+                    <div id="editHackathonAssignments" style="margin-top: 1.5rem;">
+                        <!-- Judge assignments will be loaded here -->
+                    </div>
+
+                    <div id="editHackathonLeaderboard" style="margin-top: 1.5rem;">
+                        <!-- Leaderboard will be loaded here -->
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+                        <button class="btn btn-ghost" onclick="closeEditHackathonModal()">CANCEL</button>
+                        <button type="button" class="btn btn-primary" onclick="confirmEditHackathon(); return false;">SAVE_CHANGES</button>
                     </div>
                 </div>
             </div>

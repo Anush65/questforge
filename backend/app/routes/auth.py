@@ -31,6 +31,21 @@ def register(user: UserCreateRequest, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # If user is a judge, create corresponding Judge record
+    if user.role == 'judge':
+        from app.models.judge import Judge
+        existing_judge = db.query(Judge).filter(Judge.email == user.username).first()
+        if not existing_judge:
+            judge = Judge(
+                user_id = new_user.id,
+                name=user.name,
+                email=user.username
+            )
+            db.add(judge)
+            db.commit()
+            db.refresh(judge)
+    
     return {"message": "User created successfully"}
 
 @router.post("/login", response_model=Token)
@@ -45,10 +60,30 @@ def login(user: UserCreateRequest, db: Session = Depends(get_db)):
         )
     
     access_token = create_access_token(data={"sub": db_user.email, "role": db_user.role})
+    
+    # Get or create judge_id if user is a judge
+    from app.models.judge import Judge
+    judge_id = None
+    if db_user.role == 'judge':
+        judge = db.query(Judge).filter(Judge.user_id == db_user.id).first()
+        if not judge:
+            # Create judge record if it doesn't exist (for existing users)
+            judge = Judge(
+                user_id=db_user.id,
+                name=db_user.name,
+                email=db_user.email
+            )
+            db.add(judge)
+            db.commit()
+            db.refresh(judge)
+        judge_id = judge.id if judge else None
+    
     return {
         "access_token": access_token, 
         "token_type": "bearer",
         "username": db_user.email,
         "role": db_user.role,
-        "name": db_user.name
+        "name": db_user.name,
+        "id": db_user.id,
+        "judge_id": judge_id
     }
