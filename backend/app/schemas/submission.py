@@ -6,4 +6,6 @@ class SubmissionCreateRequest(BaseModel):
     github_url: HttpUrl
     prototype_url: Optional[HttpUrl] = None
     video_url: Optional[HttpUrl] = None
+    presentation_url: Optional[HttpUrl] = None
+    usp: Optional[str] = None
     report_text: Optional[str] = None

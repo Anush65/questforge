@@ -44,3 +44,23 @@ def register_team(
         "project_title": team.project_title,
         "team_token": team.team_token
     }
+
+@router.get("/")
+def list_teams(hackathon_id: int = None, db: Session = Depends(get_db)):
+    query = db.query(Team)
+    
+    if hackathon_id:
+        query = query.filter(Team.hackathon_id == hackathon_id)
+    
+    teams = query.all()
+    
+    return [
+        {
+            "id": team.id,
+            "team_name": team.team_name,
+            "project_title": team.project_title,
+            "team_token": team.team_token,
+            "hackathon_id": team.hackathon_id
+        }
+        for team in teams
+    ]

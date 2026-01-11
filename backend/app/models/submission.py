@@ -10,6 +10,8 @@ class Submission(Base):
     github_url = Column(String, nullable=False)
     prototype_url = Column(String)   # optional deployed link
     video_url = Column(String)        # optional demo video
+    presentation_url = Column(String) # PDF link
+    usp = Column(String)             # Unique Selling Point
     report_text = Column(String)
 
     __table_args__ = (

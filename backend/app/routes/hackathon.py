@@ -16,18 +16,48 @@ def get_db():
     finally:
         db.close()
 
+@router.get("/")
+def list_hackathons(db: Session = Depends(get_db)):
+    return db.query(Hackathon).all()
+
 @router.post("/")
 def create_hackathon(
     payload: HackathonCreateRequest,
     db: Session = Depends(get_db)
 ):
+    # Use provided code or generate one
+    code = payload.invite_code if payload.invite_code else generate_invite_code()
+    
     hackathon = Hackathon(
         name=payload.name,
-        invite_code=generate_invite_code()
+        invite_code=code
     )
     db.add(hackathon)
     db.commit()
     db.refresh(hackathon)
+
+    return hackathon
+
+@router.delete("/{hackathon_id}")
+def delete_hackathon(hackathon_id: int, db: Session = Depends(get_db)):
+    hackathon = db.query(Hackathon).filter(Hackathon.id == hackathon_id).first()
+    if not hackathon:
+         raise HTTPException(status_code=404, detail="Hackathon not found")
+    
+    db.delete(hackathon)
+    db.commit()
+    return {"message": "Hackathon deleted"}
+
+@router.get("/code/{invite_code}")
+def get_hackathon_by_code(invite_code: str, db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    
+    hackathon = db.query(Hackathon).filter(
+        func.lower(Hackathon.invite_code) == func.lower(invite_code)
+    ).first()
+
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
 
     return hackathon
 

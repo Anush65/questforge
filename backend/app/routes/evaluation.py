@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import SessionLocal
-from app.core.db_helpers import fetchone, execute
+from app.core.db_helpers import execute
 from app.schemas.evaluation import EvaluationCreateRequest
 
 router = APIRouter(prefix="/evaluations", tags=["Evaluations"])
@@ -21,15 +21,6 @@ def submit_evaluation(
     payload: EvaluationCreateRequest,
     db: Session = Depends(get_db)
 ):
-    # Ensure judge is assigned to this team
-    assignment = fetchone(
-        "SELECT 1 as exists FROM judge_assignments WHERE judge_id = :jid AND team_id = :tid",
-        {"jid": payload.judge_id, "tid": payload.team_id}
-    )
-
-    if not assignment:
-        raise HTTPException(status_code=403, detail="Judge not assigned to this team")
-
     # Insert evaluation using raw SQL; rely on DB unique constraint to prevent duplicates
     try:
         execute(
