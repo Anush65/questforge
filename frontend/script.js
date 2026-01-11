@@ -8,6 +8,7 @@ const credentials = {
 let currentRole = '';
 let currentHackathon = null;
 let participantHackathon = null;
+let participantJoinedHackathons = [];
 
 // JUDGE HACKATHONS
 const judgeHackathons = [
@@ -136,7 +137,11 @@ function initParticipantDashboard() {
             <h1>👨‍💻 Participant Dashboard</h1>
             <p>Join hackathon & register team</p>
         </div>
-        
+            <div class="your-hackathons" style="margin-top:1.25rem;">
+                <h4 style="margin: .25rem 0 .5rem 0;">Your Hackathons</h4>
+                <div id="p-hackathonList" class="hackathon-list"></div>
+            </div>
+
         <!-- Step Progress -->
         <div class="steps">
             <div class="step active" data-step="1">
@@ -241,6 +246,8 @@ M0B1L3SPR1NT-GR0UP-DEF456"></textarea>
             }
         });
     }
+    // Populate the participant's hackathon list
+    populateParticipantHackathonList();
 }
 
 function participantJoinHackathon() {
@@ -257,6 +264,10 @@ function participantJoinHackathon() {
 
     if (hackathon) {
         participantHackathon = hackathon;
+        // add to joined list if not already present
+        if (!participantJoinedHackathons.find(h => h.code === hackathon.code)) {
+            participantJoinedHackathons.push(hackathon);
+        }
         statusEl.textContent = `✅ Joined ${hackathon.name}!`;
         statusEl.className = 'status status-ok';
 
@@ -269,6 +280,47 @@ function participantJoinHackathon() {
         statusEl.textContent = '❌ Wrong code! Try student codes above.';
         statusEl.className = 'status status-error';
     }
+    // refresh list to reflect joined state
+    populateParticipantHackathonList();
+}
+
+// Populate participant hackathon cards and wire join/open buttons
+function populateParticipantHackathonList() {
+    const container = document.getElementById('p-hackathonList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Show only hackathons the participant has joined
+    if (participantJoinedHackathons.length === 0) {
+        container.innerHTML = '<div style="color:#666;padding:0.5rem;">You have not joined any hackathons yet.</div>';
+        return;
+    }
+
+    participantJoinedHackathons.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'hackathon-card current';
+        card.style.marginBottom = '0.75rem';
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div class="hackathon-title" style="font-weight:600">${h.name}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="hackathon-status" style="margin-bottom:0.25rem">👥 ${h.participants} participants</div>
+                    <div style="font-size:0.85rem;color:#2b8a3e">Joined</div>
+                </div>
+            </div>
+        `;
+
+        // Clicking a joined card opens registration panel
+        card.addEventListener('click', function() {
+            document.getElementById('p-panel1').style.display = 'none';
+            document.getElementById('p-hackathonName').textContent = h.name;
+            document.getElementById('p-panel2').style.display = 'block';
+        });
+
+        container.appendChild(card);
+    });
 }
 
 function participantGoBack() {
