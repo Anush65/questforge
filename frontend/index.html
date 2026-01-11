@@ -73,6 +73,7 @@
 
     <!-- Judge Dashboard - UPDATED -->
     <div class="dashboard" id="judgeDashboard">
+        <button class="small-logout" onclick="logoutToRole()">🚪 Logout</button>
         <div class="dashboard-header">
             <h1>👨‍⚖️ Judge Dashboard</h1>
             <p>Join hackathon using party code</p>
@@ -102,16 +103,27 @@ H4CK4TH0N-V3R5ION-ABC789"></textarea>
 
     <!-- Placeholder Dashboards -->
     <div class="dashboard" id="participantDashboard">
-        <div class="dashboard-header">
-            <h1>👨‍💻 Participant Dashboard</h1>
-            <p>Coming soon...</p>
-        </div>
+        <!-- participant content generated dynamically; small logout added by script when initializing -->
     </div>
 
     <div class="dashboard" id="adminDashboard">
+        <button class="small-logout" onclick="logoutToRole()">🚪 Logout</button>
         <div class="dashboard-header">
             <h1>⚙️ Admin Dashboard</h1>
-            <p>Coming soon...</p>
+            <p>Manage live hackathons</p>
+        </div>
+
+        <div class="admin-controls" style="padding:1rem 0;">
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
+                <input type="text" id="adminHackathonName" placeholder="Hackathon name (e.g. AI Sprint)" style="flex:1;padding:0.5rem;border-radius:6px;border:1px solid #ccc;" />
+                <button class="join-btn" id="adminStartBtn" onclick="startHosting()">Start Hosting</button>
+            </div>
+            <div style="margin-bottom:0.5rem;color:#666;font-size:0.95rem;">When you start hosting, two codes are created: one for participants and one for judges. Only those codes will be accepted in their respective join inputs.</div>
+        </div>
+
+        <h3 style="margin-bottom: 0.5rem; color: #333;">Running Hackathons</h3>
+        <div id="adminHackathonList" class="hackathon-list">
+            <!-- populated by script -->
         </div>
     </div>
 

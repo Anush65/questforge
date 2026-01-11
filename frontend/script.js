@@ -9,6 +9,91 @@ let currentRole = '';
 let currentHackathon = null;
 let participantHackathon = null;
 let participantJoinedHackathons = [];
+let judgeJoinedHackathons = [];
+// Admin-managed running hackathons
+let runningHackathons = [];
+
+function initAdminDashboard() {
+    // Ensure admin list is populated
+    populateAdminHackathonList();
+}
+
+function generateCode(prefix = '', len = 6) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return `${prefix}-${out}`;
+}
+
+function startHosting() {
+    const nameInput = document.getElementById('adminHackathonName');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+        alert('Please provide a hackathon name');
+        return;
+    }
+
+    // generate codes
+    const participantCode = generateCode('PART');
+    const judgeCode = generateCode('JUDGE');
+
+    const newHack = { name, participantCode, judgeCode, participants: 0 };
+    runningHackathons.push(newHack);
+
+    // Add to accepted arrays so joins only accept these codes
+    participantHackathons.push({ code: participantCode, name, participants: 0 });
+    judgeHackathons.push({ code: judgeCode, name, participants: 0 });
+
+    // show a small dialog to admin with the codes
+    alert(`Started hosting: ${name}\nParticipant code: ${participantCode}\nJudge code: ${judgeCode}`);
+
+    // clear input and refresh lists
+    if (nameInput) nameInput.value = '';
+    populateAdminHackathonList();
+}
+
+function populateAdminHackathonList() {
+    const list = document.getElementById('adminHackathonList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (runningHackathons.length === 0) {
+        list.innerHTML = '<div style="color:#666;padding:0.5rem;">No hackathons are currently running.</div>';
+        return;
+    }
+
+    runningHackathons.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'hackathon-card current';
+        card.style.marginBottom = '0.75rem';
+        card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div class="hackathon-title" style="font-weight:600">${h.name}</div>
+                    <div style="font-size:0.9rem;color:#333;margin-top:0.25rem">Participants: ${h.participants}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:0.85rem;color:#444">Participant code: <strong>${h.participantCode}</strong></div>
+                    <div style="font-size:0.85rem;color:#444">Judge code: <strong>${h.judgeCode}</strong></div>
+                </div>
+            </div>
+        `;
+
+        list.appendChild(card);
+    });
+}
+
+function adminLogout() {
+    logoutToRole();
+}
+
+function logoutToRole() {
+    currentRole = '';
+    currentHackathon = null;
+    participantHackathon = null;
+    // keep joined lists intact, but reset UI
+    showMainLogin();
+}
 
 // JUDGE HACKATHONS
 const judgeHackathons = [
@@ -66,6 +151,8 @@ function showDashboard(role) {
         populateJudgeHackathonList();
     } else if (role === 'participant') {
         initParticipantDashboard();
+    } else if (role === 'admin') {
+        initAdminDashboard();
     }
 }
 
@@ -73,6 +160,7 @@ function showDashboard(role) {
 // JUDGE FUNCTIONS (Your existing ones)
 function joinHackathon() {
     const codeInput = document.getElementById('hackathonCodeInput').value.trim();
+    const normCode = codeInput.toUpperCase();
     const btn = document.getElementById('joinBtn');
 
     if (!codeInput) {
@@ -80,9 +168,8 @@ function joinHackathon() {
         return;
     }
 
-    const hackathon = judgeHackathons.find(h =>
-        h.code.toLowerCase() === codeInput.toLowerCase()
-    );
+    // find by normalized code (case-insensitive, whitespace trimmed)
+    const hackathon = judgeHackathons.find(h => h.code.toUpperCase() === normCode);
 
     if (hackathon) {
         currentHackathon = hackathon;
@@ -92,6 +179,11 @@ function joinHackathon() {
 
         document.getElementById('currentHackathonName').textContent = hackathon.name;
         document.getElementById('currentHackathonInfo').style.display = 'block';
+
+        // add to joined list if not already present
+        if (!judgeJoinedHackathons.find(h => h.code === hackathon.code)) {
+            judgeJoinedHackathons.push(hackathon);
+        }
 
         populateJudgeHackathonList();
 
@@ -103,26 +195,46 @@ function joinHackathon() {
 
 function populateJudgeHackathonList() {
     const listContainer = document.getElementById('hackathonList');
+    if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    judgeHackathons.forEach(hackathon => {
-        const isCurrent = currentHackathon && currentHackathon.code === hackathon.code;
-        const isConnected = currentHackathon === hackathon;
+    // show only hackathons the judge has joined
+    if (judgeJoinedHackathons.length === 0) {
+        listContainer.innerHTML = '<div style="color:#666;padding:0.5rem;">You have not connected to any hackathons yet.</div>';
+        return;
+    }
 
+    judgeJoinedHackathons.forEach(hackathon => {
+        const isCurrent = currentHackathon && currentHackathon.code === hackathon.code;
         const card = document.createElement('div');
         card.className = `hackathon-card ${isCurrent ? 'current' : ''}`;
+        card.style.marginBottom = '0.75rem';
         card.innerHTML = `
-            <div class="hackathon-title">${hackathon.name}</div>
-            <div class="hackathon-status ${isConnected ? 'status-connected' : 'status-disconnected'}">
-                ${isConnected ? '✅ Active Session' : '🔌 Join to Connect'}
-            </div>
-            <div class="hackathon-status status-participants">
-                👥 ${hackathon.participants} participants
-            </div>
-            <div class="code-display">
-                📋 Code: ${hackathon.code}
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div class="hackathon-title">${hackathon.name}</div>
+                    <div class="hackathon-status status-participants">👥 ${hackathon.participants} participants</div>
+                </div>
+                <div style="text-align:right">
+                    <div class="hackathon-status ${isCurrent ? 'status-connected' : 'status-disconnected'}">${isCurrent ? '✅ Active Session' : '🔌 Connected'}</div>
+                </div>
             </div>
         `;
+
+        card.addEventListener('click', function() {
+            // clicking opens/connects this hackathon
+            currentHackathon = hackathon;
+            document.getElementById('connectionStatus').innerHTML = '🟢 Connected';
+            document.getElementById('currentHackathonName').textContent = hackathon.name;
+            document.getElementById('currentHackathonInfo').style.display = 'block';
+            const btn = document.getElementById('joinBtn');
+            if (btn) {
+                btn.textContent = '✅ Connected!';
+                btn.classList.add('connected');
+            }
+            populateJudgeHackathonList();
+        });
+
         listContainer.appendChild(card);
     });
 }
@@ -133,6 +245,7 @@ function initParticipantDashboard() {
     // Create participant content dynamically
     const participantDash = document.getElementById('participantDashboard');
     participantDash.innerHTML = `
+        <button class="small-logout" onclick="logoutToRole()">🚪 Logout</button>
         <div class="dashboard-header">
             <h1>👨‍💻 Participant Dashboard</h1>
             <p>Join hackathon & register team</p>
@@ -217,7 +330,6 @@ M0B1L3SPR1NT-GR0UP-DEF456"></textarea>
                     </div>
                 </div>
                 <div class="btn-row">
-                    <button type="button" class="login-btn back-btn" onclick="participantGoBack()" style="width: auto;">← Back</button>
                     <button type="submit" class="join-btn">✅ Register Team</button>
                 </div>
             </form>
