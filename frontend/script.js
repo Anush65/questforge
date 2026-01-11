@@ -231,6 +231,16 @@ M0B1L3SPR1NT-GR0UP-DEF456"></textarea>
 
     // Add event listener for team form
     document.getElementById('p-teamForm').addEventListener('submit', participantSubmitTeam);
+    // Submit participant hackathon code on Enter (prevent default newline)
+    const pCodeEl = document.getElementById('p-hackathonCode');
+    if (pCodeEl) {
+        pCodeEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                participantJoinHackathon();
+            }
+        });
+    }
 }
 
 function participantJoinHackathon() {
@@ -297,14 +307,31 @@ function participantReset() {
 }
 
 // Enter key support
-document.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        const activeForm = document.querySelector('.login-form.active');
-        if (activeForm) {
-            const role = activeForm.id.replace('Login', '');
-            login(role);
-        } else if (document.getElementById('judgeDashboard').classList.contains('active')) {
+// Targeted Enter-key support (avoid global reset behavior)
+// Login inputs: pressing Enter triggers corresponding login
+const loginFormsContainer = document.getElementById('loginForms');
+if (loginFormsContainer) {
+    loginFormsContainer.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const form = input.closest('.login-form');
+                if (form) {
+                    const role = form.id.replace('Login', '');
+                    login(role);
+                }
+            }
+        });
+    });
+}
+
+// Judge code textarea: Enter submits (without Shift)
+const judgeCodeTextarea = document.getElementById('hackathonCodeInput');
+if (judgeCodeTextarea) {
+    judgeCodeTextarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
             joinHackathon();
         }
-    }
-});
+    });
+}
