@@ -32,7 +32,9 @@ app.include_router(judge_view_router)
 app.include_router(auth_router)
 
 from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory=r"c:\Users\AnushV\questforge-1\frontend", html=True), name="static")
+import os
+frontend_dir = os.path.join(os.path.dirname(__file__), "../../frontend")
+app.mount("/static", StaticFiles(directory=frontend_dir, html=True), name="static")
 
 Base.metadata.create_all(bind=engine)
 

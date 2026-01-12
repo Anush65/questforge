@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUESTFORGE | JUDGE PORTAL</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="app-layout">
+        <!-- HEADER -->
+        <header class="main-header">
+            <div class="brand-container">
+                <img src="assets/logo.png" alt="QuestForge Logo" class="brand-logo-img">
+                <span class="brand-text flicker-text">QUESTFORGE</span>
+            </div>
+            <div id="systemStatus" class="flicker-text"
+                style="font-family: var(--font-code); color: var(--matrix-green); font-size: 0.8rem;">
+                SYSTEM: ONLINE
+            </div>
+        </header>
+
+        <!-- MAIN DASHBOARD -->
+        <div id="dashboardView" class="view-section">
+            <div class="main-header" style="border-bottom: none; margin-bottom: 2rem;">
+                <div>
+                    <h2 id="userRoleTitle">JUDGE_PORTAL</h2>
+                    <p id="userWelcome" style="font-family: var(--font-code); color: var(--matrix-green);">
+                        > WELCOME BACK, JUDGE.
+                    </p>
+                </div>
+                <button class="btn btn-ghost" onclick="handleLogout()" style="border: 1px solid var(--border-subtle);">
+                    TERMINATE_SESSION
+                </button>
+            </div>
+
+            <div id="dashboardContent">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- EVALUATION MODAL -->
+            <div id="evaluationModal" class="modal-overlay hidden">
+                <div class="card modal-content" style="max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+                    <h3 style="margin-bottom: 1rem;">SUBMISSION_EVALUATION</h3>
+                    <p style="font-family: var(--font-code); font-size: 0.8rem; margin-bottom: 1rem; color: var(--text-secondary);">
+                        > ENTER_EVALUATION_SCORE (0-100)
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label">INNOVATION_SCORE</label>
+                        <input type="number" id="evalInnovation" class="input-field" min="0" max="100" placeholder="0-100">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">IMPLEMENTATION_SCORE</label>
+                        <input type="number" id="evalImplementation" class="input-field" min="0" max="100" placeholder="0-100">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">PRESENTATION_SCORE</label>
+                        <input type="number" id="evalPresentation" class="input-field" min="0" max="100" placeholder="0-100">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">FEEDBACK_COMMENTS</label>
+                        <textarea id="evalComments" class="input-field" style="min-height: 100px;" placeholder="Provide constructive feedback..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button class="btn btn-ghost" onclick="closeEvaluationModal()">CANCEL</button>
+                        <button type="button" class="btn btn-primary" onclick="submitEvaluation(); return false;">SUBMIT_EVALUATION</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="toastContainer"
+                style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;">
+            </div>
+        </div>
+
+        <script src="script.js?v=2"></script>
+        <script src="judge-dashboard.js?v=1"></script>
+</body>
+
+</html>

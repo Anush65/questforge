@@ -264,8 +264,26 @@ async function handleLogin() {
                 }
             }
 
-            showDashboard();
-            showToast(`AUTHENTICATED: ${data.username.toUpperCase()}`, 'success');
+            // Store user in localStorage for the role-specific dashboard pages
+            localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+
+            // Redirect to appropriate dashboard based on role
+            const dashboardMap = {
+                'judge': 'judge-dashboard.html',
+                'participant': 'participant-dashboard.html',
+                'admin': 'admin-dashboard.html'
+            };
+
+            const targetPage = dashboardMap[data.role];
+            if (targetPage) {
+                showToast(`AUTHENTICATED: ${data.username.toUpperCase()}`, 'success');
+                // Delay redirect slightly to allow toast to be seen
+                setTimeout(() => {
+                    window.location.href = targetPage;
+                }, 500);
+            } else {
+                showToast('ERROR: UNKNOWN_ROLE_ASSIGNED', 'error');
+            }
         } else {
             showToast('ACCESS_DENIED // INVALID_CREDENTIALS', 'error');
         }

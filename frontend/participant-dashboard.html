@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUESTFORGE | PARTICIPANT PORTAL</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="app-layout">
+        <!-- HEADER -->
+        <header class="main-header">
+            <div class="brand-container">
+                <img src="assets/logo.png" alt="QuestForge Logo" class="brand-logo-img">
+                <span class="brand-text flicker-text">QUESTFORGE</span>
+            </div>
+            <div id="systemStatus" class="flicker-text"
+                style="font-family: var(--font-code); color: var(--matrix-green); font-size: 0.8rem;">
+                SYSTEM: ONLINE
+            </div>
+        </header>
+
+        <!-- MAIN DASHBOARD -->
+        <div id="dashboardView" class="view-section">
+            <div class="main-header" style="border-bottom: none; margin-bottom: 2rem;">
+                <div>
+                    <h2 id="userRoleTitle">PARTICIPANT_ACCESS</h2>
+                    <p id="userWelcome" style="font-family: var(--font-code); color: var(--matrix-green);">
+                        > WELCOME BACK, PARTICIPANT.
+                    </p>
+                </div>
+                <button class="btn btn-ghost" onclick="handleLogout()" style="border: 1px solid var(--border-subtle);">
+                    TERMINATE_SESSION
+                </button>
+            </div>
+
+            <div id="dashboardContent">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- SUBMISSION MODAL -->
+            <div id="submissionModal" class="modal-overlay hidden">
+                <div class="card modal-content" style="max-width: 600px; width: 90%;">
+                    <h3 style="margin-bottom: 1rem;">INITIATE PROJECT UPLOAD</h3>
+                    <p
+                        style="font-family: var(--font-code); font-size: 0.8rem; margin-bottom: 1rem; color: var(--text-secondary);">
+                        > SECURE_DATA_TRANSMISSION_PROTOCOL
+                    </p>
+
+                    <div class="input-group">
+                        <label class="input-label">TEAM_TOKEN</label>
+                        <input type="text" id="subTeamToken" class="input-field"
+                            placeholder="Enter Token (e.g. MATRIX_TOKEN)">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">GITHUB_REPO_URL</label>
+                        <input type="text" id="subGithub" class="input-field" placeholder="https://github.com/...">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="input-group">
+                            <label class="input-label">PROTOTYPE_URL (OPTIONAL)</label>
+                            <input type="text" id="subPrototype" class="input-field" placeholder="https://...">
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label">VIDEO_DEMO_URL (OPTIONAL)</label>
+                            <input type="text" id="subVideo" class="input-field" placeholder="https://youtube.com/...">
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">PRESENTATION_PDF_URL (OPTIONAL)</label>
+                        <input type="text" id="subPresentation" class="input-field"
+                            placeholder="https://drive.google.com/...">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">UNIQUE_SELLING_POINT (USP)</label>
+                        <input type="text" id="subUSP" class="input-field" placeholder="One sentence pitch...">
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label">REPORT / DESCRIPTION</label>
+                        <textarea id="subReport" class="input-field" style="min-height: 80px;"
+                            placeholder="Markdown supported..."></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button class="btn btn-ghost" onclick="closeSubmissionModal()">CANCEL</button>
+                        <button type="button" class="btn btn-primary"
+                            onclick="submitProject(); return false;">CONFIRM_UPLOAD</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="toastContainer"
+                style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;">
+            </div>
+        </div>
+
+        <script src="script.js?v=2"></script>
+        <script src="participant-dashboard.js?v=1"></script>
+</body>
+
+</html>
