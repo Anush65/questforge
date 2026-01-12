@@ -16,6 +16,30 @@ def get_db():
         db.close()
 
 
+@router.get("/")
+def get_evaluations(
+    judge_id: int = None,
+    team_id: int = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Evaluation)
+    if judge_id:
+        query = query.filter(Evaluation.judge_id == judge_id)
+    if team_id:
+        query = query.filter(Evaluation.team_id == team_id)
+    
+    evaluations = query.all()
+    return [
+        {
+            "id": e.id,
+            "judge_id": e.judge_id,
+            "team_id": e.team_id,
+            "score": e.score
+        }
+        for e in evaluations
+    ]
+
+
 @router.post("/")
 def submit_evaluation(
     payload: EvaluationCreateRequest,

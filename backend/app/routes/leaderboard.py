@@ -37,14 +37,15 @@ def leaderboard(hackathon_id: int = None, db: Session = Depends(get_db)):
     if not eval_rows:
         return []
 
-    normalized = normalize_evaluations_by_judge(eval_rows, target_mean=7)
+    # For demo purposes, use raw scores instead of normalized
+    # normalized = normalize_evaluations_by_judge(eval_rows, target_mean=7)
 
-    # Aggregate normalized scores per team
+    # Aggregate raw scores per team
     team_sums = {}
     team_counts = {}
-    for e in normalized:
+    for e in eval_rows:
         tid = e["team_id"]
-        score = e["normalized_score"]
+        score = float(e["score"])
         team_sums[tid] = team_sums.get(tid, 0.0) + score
         team_counts[tid] = team_counts.get(tid, 0) + 1
 

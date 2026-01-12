@@ -416,6 +416,18 @@ function showDashboard() {
 // 1. JUDGE DASHBOARD
 async function renderJudgeDashboard(container) {
     if (!state.connectedHackathon) {
+        // Fetch judge's session history
+        let sessionHistory = [];
+        try {
+            if (state.currentUser && state.currentUser.judge_id) {
+                const res = await fetch(`${API_BASE}/hackathons/judge/${state.currentUser.judge_id}`);
+                if (res.ok) sessionHistory = await res.json();
+                else console.error('Failed to fetch session history');
+            }
+        } catch (e) {
+            console.error('API Error:', e);
+        }
+
         container.innerHTML = `
             <div class="card" style="margin-bottom: 2rem;">
                 <h3>ACTIVE_SESSIONS</h3>
@@ -429,21 +441,51 @@ async function renderJudgeDashboard(container) {
                 <button onclick="joinHackathon()" class="btn btn-primary" id="joinBtn">CONNECT</button>
             </div>
             <h4 style="margin-bottom: 1rem; color: var(--text-secondary);">SESSION_HISTORY</h4>
-            <div id="hackathonList" style="display: grid; gap: 1rem;"></div>
+            <div id="hackathonList" style="display: grid; gap: 1rem;">
+                ${sessionHistory.length === 0 ? '<div class="card">NO_PREVIOUS_SESSIONS</div>' : ''}
+                ${sessionHistory.map(h => `
+                    <div class="card" style="padding: 1rem; border-left: 3px solid var(--matrix-green); cursor: pointer;" onclick="reconnectToHackathon('${h.invite_code}')">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: bold; color: var(--text-primary);">${h.name}</div>
+                                <div style="font-family: var(--font-code); font-size: 0.8rem; color: var(--text-secondary);">CODE: ${h.invite_code}</div>
+                            </div>
+                            <div style="color: var(--matrix-green); font-family: var(--font-code);">
+                                > RECONNECT
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
         `;
     } else {
         const h = state.connectedHackathon;
 
-        // Fetch Submissions
+        // Fetch Submissions for assigned teams
         let submissions = [];
+        let evaluations = [];
         try {
+            // For demo purposes, show all submissions for the hackathon
             const res = await fetch(`${API_BASE}/submissions/?hackathon_id=${h.id}`);
             if (res.ok) submissions = await res.json();
             else console.error('Failed to fetch submissions');
+            
+            // Fetch existing evaluations for this judge
+            if (state.currentUser && state.currentUser.judge_id) {
+                const evalRes = await fetch(`${API_BASE}/evaluations/?judge_id=${state.currentUser.judge_id}`);
+                if (evalRes.ok) evaluations = await evalRes.json();
+                else console.error('Failed to fetch evaluations');
+            }
         } catch (e) {
             console.error('API Error:', e);
             showToast('ERROR: API_CONNECTION_FAILED', 'error');
         }
+
+        // Create a map of team_id to evaluation for quick lookup
+        const evaluationMap = {};
+        evaluations.forEach(evaluation => {
+            evaluationMap[evaluation.team_id] = evaluation;
+        });
 
         container.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -499,8 +541,13 @@ async function renderJudgeDashboard(container) {
                         </div>
 
                         <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem; display: flex; justify-content: flex-end; items-align: center; gap: 1rem;">
-                             <input type="number" id="score-${s.id}" class="input-field" placeholder="0.0 - 10.0" step="0.1" min="0" max="10" style="width: 120px;">
-                             <button type="button" class="btn btn-primary" onclick="submitGrade('${s.id}', '${s.team_id}'); return false;">SUBMIT_SCORE</button>
+                             ${(() => {
+                                 const existingEval = evaluationMap[s.team_id];
+                                 const scoreValue = existingEval ? existingEval.score : '';
+                                 const buttonText = existingEval ? 'UPDATE_SCORE' : 'SUBMIT_SCORE';
+                                 return `<input type="number" id="score-${s.id}" class="input-field" placeholder="0.0 - 10.0" step="0.1" min="0" max="10" style="width: 120px;" value="${scoreValue}">
+                                        <button type="button" class="btn btn-primary" onclick="submitGrade('${s.id}', '${s.team_id}'); return false;">${buttonText}</button>`;
+                             })()}
                         </div>
                     </div>
                 `).join('')}
@@ -613,9 +660,11 @@ async function submitGrade(subId, teamId) {
             const result = await res.json();
             const message = result.message || 'Evaluation recorded';
             showToast(`SUCCESS: ${message.toUpperCase()}: ${scoreVal}`, 'success');
-            scoreInput.disabled = true;
-            scoreInput.parentElement.querySelector('button').textContent = "GRADED";
-            scoreInput.parentElement.querySelector('button').disabled = true;
+            // Don't disable input/button - allow judges to update evaluations
+            scoreInput.parentElement.querySelector('button').textContent = "SCORE_UPDATED";
+            setTimeout(() => {
+                scoreInput.parentElement.querySelector('button').textContent = "UPDATE_SCORE";
+            }, 2000);
             
             // Refresh judge dashboard without redirecting
             // Preserve the connected hackathon state
@@ -683,6 +732,23 @@ async function joinHackathon() {
         console.error(e);
         showToast('ERROR: BACKEND_UNREACHABLE', 'error');
         btn.textContent = 'CONNECT';
+    }
+}
+
+async function reconnectToHackathon(inviteCode) {
+    try {
+        const res = await fetch(`${API_BASE}/hackathons/code/${inviteCode}`);
+        if (res.ok) {
+            const hack = await res.json();
+            state.connectedHackathon = hack;
+            showDashboard();
+            showToast(`RECONNECTED: ${hack.name}`, 'success');
+        } else {
+            showToast('ERROR: SESSION_NOT_FOUND', 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('ERROR: BACKEND_UNREACHABLE', 'error');
     }
 }
 
@@ -902,6 +968,44 @@ async function joinHackathonAsParticipant() {
         if (res.ok) {
             const hack = await res.json();
             state.connectedHackathon = hack;
+            
+            // Check if user already has a team for this hackathon
+            let hasTeam = false;
+            try {
+                const teamsRes = await fetch(`${API_BASE}/teams?hackathon_id=${hack.id}`);
+                if (teamsRes.ok) {
+                    const teams = await teamsRes.json();
+                    hasTeam = teams.length > 0;
+                }
+            } catch (e) {
+                console.error('Error checking teams:', e);
+            }
+            
+            // If no team exists, automatically create one
+            if (!hasTeam && state.currentUser) {
+                try {
+                    const teamRes = await fetch(`${API_BASE}/teams/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            team_name: `${state.currentUser.name}'s Team`,
+                            project_title: `Project by ${state.currentUser.name}`,
+                            hackathon_code: code
+                        })
+                    });
+                    
+                    if (teamRes.ok) {
+                        const teamData = await teamRes.json();
+                        state.currentTeamId = teamData.team_id;
+                        showToast('TEAM_AUTO_ASSIGNED', 'success');
+                    } else {
+                        console.error('Failed to auto-create team');
+                    }
+                } catch (e) {
+                    console.error('Error auto-creating team:', e);
+                }
+            }
+            
             showDashboard();
             showToast(`SESSION_ESTABLISHED: ${hack.name}`, 'success');
         } else {
@@ -1106,6 +1210,9 @@ async function editHackathon(hackathonId) {
     // Load judge assignments
     await loadJudgeAssignments(hackathonId);
     
+    // Load submissions
+    await loadHackathonSubmissions(hackathonId);
+    
     // Load leaderboard
     await loadHackathonLeaderboard(hackathonId);
 
@@ -1160,7 +1267,10 @@ async function loadJudgeAssignments(hackathonId) {
             });
 
             container.innerHTML = `
-                <h4 style="margin-bottom: 0.5rem;">JUDGE_ASSIGNMENTS</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4 style="margin: 0;">JUDGE_ASSIGNMENTS</h4>
+                    <button class="btn btn-ghost" style="font-size: 0.8rem; border: 1px solid var(--cyber-cyan); color: var(--cyber-cyan);" onclick="runAssignments(${hackathonId})">RUN_ASSIGNMENTS</button>
+                </div>
                 <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.5rem; border-radius: 4px;">
                     ${Object.keys(byJudge).length === 0 ? '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_ASSIGNMENTS_YET</div>' : ''}
                     ${Object.entries(byJudge).map(([judgeName, teams]) => `
@@ -1179,6 +1289,51 @@ async function loadJudgeAssignments(hackathonId) {
         }
     } catch (e) {
         container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_ASSIGNMENTS_YET</div>';
+    }
+}
+
+async function loadHackathonSubmissions(hackathonId) {
+    const container = document.getElementById('editHackathonSubmissions');
+    try {
+        const res = await fetch(`${API_BASE}/submissions?hackathon_id=${hackathonId}`);
+        if (res.ok) {
+            const submissions = await res.json();
+            container.innerHTML = `
+                <h4 style="margin-bottom: 0.5rem;">SUBMISSIONS (${submissions.length})</h4>
+                <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.5rem; border-radius: 4px;">
+                    ${submissions.length === 0 ? '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_SUBMISSIONS_YET</div>' : ''}
+                    ${submissions.map(s => `
+                        <div style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem;">
+                            <div style="font-weight: bold;">${s.title}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">By: ${s.team_name}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; font-family: var(--font-code);">GitHub: ${s.github_url ? '✓' : '✗'}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_SUBMISSIONS_YET</div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.9rem;">NO_SUBMISSIONS_YET</div>';
+    }
+}
+
+async function runAssignments(hackathonId) {
+    try {
+        const res = await fetch(`${API_BASE}/assignments/run`, {
+            method: 'POST'
+        });
+        if (res.ok) {
+            showToast('SUCCESS: ASSIGNMENTS_RUN', 'success');
+            // Reload assignments
+            await loadJudgeAssignments(hackathonId);
+        } else {
+            showToast('ERROR: FAILED_TO_RUN_ASSIGNMENTS', 'error');
+        }
+    } catch (e) {
+        console.error('Error running assignments:', e);
+        showToast('ERROR: API_CONNECTION_FAILED', 'error');
     }
 }
 

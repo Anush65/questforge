@@ -20,6 +20,22 @@ def get_db():
 def list_hackathons(db: Session = Depends(get_db)):
     return db.query(Hackathon).all()
 
+@router.get("/judge/{judge_id}")
+def get_hackathons_for_judge(judge_id: int, db: Session = Depends(get_db)):
+    from app.models.evaluation import Evaluation
+    from app.models.team import Team
+    
+    # Get hackathons where the judge has evaluated teams
+    hackathons = db.query(Hackathon).join(
+        Team, Hackathon.id == Team.hackathon_id
+    ).join(
+        Evaluation, Team.id == Evaluation.team_id
+    ).filter(
+        Evaluation.judge_id == judge_id
+    ).distinct().all()
+    
+    return hackathons
+
 @router.post("/")
 def create_hackathon(
     payload: HackathonCreateRequest,

@@ -29,11 +29,10 @@ app.include_router(judge_router)
 app.include_router(assignment_router)
 app.include_router(evaluation_router)
 app.include_router(judge_view_router)
-app.include_router(judge_view_router)
 app.include_router(auth_router)
 
 from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory=r"c:\Users\AnushV\questforge\frontend", html=True), name="static")
+app.mount("/static", StaticFiles(directory=r"c:\Users\AnushV\questforge-1\frontend", html=True), name="static")
 
 Base.metadata.create_all(bind=engine)
 
