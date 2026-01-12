@@ -117,13 +117,6 @@ pytest -q
 - DB config: [backend/app/core/database.py](backend/app/core/database.py)
 - Frontend entry: [frontend/main.html](frontend/main.html)
 
----
-
-If you want, I can:
-- update `app/main.py` to mount `frontend` relatively and open a PR
-- add a minimal `Dockerfile` and `docker-compose.yml` for local Postgres + backend
-- generate a short machine-readable API reference by extracting route docstrings
-
 Tell me which of the above (or other tasks) you want next.
 # questforge
 CodeChef Winter Vacation Project by Sarvesh, Darshan, and Anush
