@@ -1,48 +1,52 @@
 // QuestForge - Matrix System Logic
 
 // --- Matrix Rain Animation ---
-const canvas = document.getElementById('matrixCanvas');
-const ctx = canvas.getContext('2d');
-
+let canvas = document.getElementById('matrixCanvas');
+let ctx = null;
 let width, height;
 
-function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-}
-window.addEventListener('resize', resize);
-resize();
-
-const chars = '0123456789ABCDEFQUESTFORGE';
-const fontSize = 14;
-const columns = width / fontSize;
-const drops = [];
-
-for (let i = 0; i < columns; i++) {
-    drops[i] = 1;
-}
-
-function drawMatrix() {
-    ctx.fillStyle = 'rgba(5, 5, 5, 0.05)';
-    ctx.fillRect(0, 0, width, height);
-    ctx.font = fontSize + 'px monospace';
-
-    for (let i = 0; i < drops.length; i++) {
-        const text = chars[Math.floor(Math.random() * chars.length)];
-        if (Math.random() > 0.98) ctx.fillStyle = '#00f3ff';
-        else ctx.fillStyle = '#00ff41';
-
-        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-        if (drops[i] * fontSize > height && Math.random() > 0.975) {
-            drops[i] = 0;
-        }
-        drops[i]++;
+// Only initialize matrix if canvas exists (not on role-specific dashboard pages)
+if (canvas) {
+    ctx = canvas.getContext('2d');
+    
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
     }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const chars = '0123456789ABCDEFQUESTFORGE';
+    const fontSize = 14;
+    const columns = width / fontSize;
+    const drops = [];
+
+    for (let i = 0; i < columns; i++) {
+        drops[i] = 1;
+    }
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.05)';
+        ctx.fillRect(0, 0, width, height);
+        ctx.font = fontSize + 'px monospace';
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars[Math.floor(Math.random() * chars.length)];
+            if (Math.random() > 0.98) ctx.fillStyle = '#00f3ff';
+            else ctx.fillStyle = '#00ff41';
+
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            if (drops[i] * fontSize > height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 33);
 }
-setInterval(drawMatrix, 33);
 
 const API_BASE = 'http://127.0.0.1:8000'; // Moved to top for global access
 
@@ -79,6 +83,13 @@ const views = {
     dashboard: document.getElementById('dashboardView'),
     register: document.getElementById('registerView') // [NEW]
 };
+
+// Filter out null views (for role-specific pages that don't have landing/login/register)
+for (let key in views) {
+    if (views[key] === null) {
+        delete views[key];
+    }
+}
 
 function showLanding() {
     // #region agent log

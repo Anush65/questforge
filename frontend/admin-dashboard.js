@@ -30,6 +30,9 @@ async function initializeAdminDashboard() {
     // Initialize dashboard
     const container = document.getElementById('dashboardContent');
     await renderAdminDashboard(container);
+    
+    // Check system status
+    checkSystemStatus();
 }
 
 function openCreateEventModal() {

@@ -30,6 +30,9 @@ async function initializeParticipantDashboard() {
     // Initialize dashboard
     const container = document.getElementById('dashboardContent');
     await renderParticipantDashboard(container);
+    
+    // Check system status
+    checkSystemStatus();
 }
 
 function openSubmissionModal() {

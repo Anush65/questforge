@@ -30,6 +30,9 @@ async function initializeJudgeDashboard() {
     // Initialize dashboard
     const container = document.getElementById('dashboardContent');
     await renderJudgeDashboard(container);
+    
+    // Check system status
+    checkSystemStatus();
 }
 
 function openEvaluationModal() {
