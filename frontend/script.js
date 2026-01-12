@@ -162,6 +162,23 @@ function showToast(msg, type = 'info') {
     }, 3000);
 }
 
+// --- LOGIN ERROR MODAL ---
+function showLoginError(title, message) {
+    const errorModal = document.getElementById('loginErrorModal');
+    if (!errorModal) return; // Only works on main.html
+
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMessage').textContent = `> ${message}`;
+    errorModal.classList.remove('hidden');
+}
+
+function closeLoginErrorModal() {
+    const errorModal = document.getElementById('loginErrorModal');
+    if (errorModal) {
+        errorModal.classList.add('hidden');
+    }
+}
+
 function switchView(viewName) {
     Object.values(views).forEach(el => el.classList.add('hidden'));
     const target = views[viewName];
@@ -206,7 +223,7 @@ async function handleLogin() {
     const targetRole = state.loginTargetRole;
 
     if (!usernameInput || !passwordInput) {
-        showToast('ERROR: CREDENTIALS_REQUIRED', 'error');
+        showLoginError('CREDENTIALS_REQUIRED', 'Please enter both username and password');
         return;
     }
 
@@ -239,7 +256,7 @@ async function handleLogin() {
             // Verify Role
             if (data.role !== targetRole && targetRole !== 'admin') {
                 // Admin might login as others? No, strict role check.
-                showToast(`ERROR: ROLE_MISMATCH (Account is ${data.role})`, 'error');
+                showLoginError('ROLE_MISMATCH', `Account is registered as ${data.role}, not ${targetRole}`);
                 return;
             }
 
@@ -282,14 +299,14 @@ async function handleLogin() {
                     window.location.href = targetPage;
                 }, 500);
             } else {
-                showToast('ERROR: UNKNOWN_ROLE_ASSIGNED', 'error');
+                showLoginError('UNKNOWN_ROLE', 'Your account has an unknown role assigned');
             }
         } else {
-            showToast('ACCESS_DENIED // INVALID_CREDENTIALS', 'error');
+            showLoginError('INVALID_CREDENTIALS', 'The username or password you entered is incorrect');
         }
     } catch (e) {
         console.error(e);
-        showToast('ERROR: AUTH_SERVER_UNREACHABLE', 'error');
+        showLoginError('SERVER_ERROR', 'Could not reach the authentication server');
     }
 }
 

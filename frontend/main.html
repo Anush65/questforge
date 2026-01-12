@@ -101,6 +101,18 @@
             </div>
         </div>
 
+        <!-- LOGIN ERROR MODAL -->
+        <div id="loginErrorModal" class="modal-overlay hidden">
+            <div class="card modal-content" style="max-width: 400px; width: 90%; text-align: center;">
+                <h3 id="errorTitle" style="margin-bottom: 1rem; color: #ff4444;">ACCESS_DENIED</h3>
+                <p id="errorMessage"
+                    style="font-family: var(--font-code); font-size: 0.9rem; margin-bottom: 2rem; color: var(--text-secondary); line-height: 1.6;">
+                    > INVALID_CREDENTIALS
+                </p>
+                <button class="btn btn-primary" onclick="closeLoginErrorModal()" style="width: 100%;">RETRY</button>
+            </div>
+        </div>
+
         <!-- VIEW: REGISTER -->
         <div id="registerView" class="view-section hidden">
             <div class="card" style="max-width: 400px; margin: 4rem auto;">
