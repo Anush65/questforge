@@ -835,9 +835,7 @@ function renderHackathonList() {
 // 2. PARTICIPANT DASHBOARD
 async function renderParticipantDashboard(container) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:724',message:'renderParticipantDashboard entry',data:{has_connectedHackathon:state.connectedHackathon!=null,has_currentUser:state.currentUser!=null,role:state.currentUser?.role,dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
-    if (!state.connectedHackathon) {
+    fetch('http://127.0.0.1:7242/ingest/46dd9ff4-3e62-44b0-88b2-5033c2ae75ad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'script.js:724',message:'renderParticipantDashboard entry',data:{has_connectedHackathon:state.connectedHackathon!=null,has_currentUser:state.currentUser!=null,role:state.currentUser?.role,dashboard_hidden:views.dashboard.classList.contains('hidden')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});    if (!state.connectedHackathon) {
         // Show hackathon join interface (similar to judge)
         container.innerHTML = `
             <div class="card" style="margin-bottom: 2rem;">
@@ -855,20 +853,30 @@ async function renderParticipantDashboard(container) {
             <div id="hackathonListParticipant" style="display: grid; gap: 1rem;"></div>
         `;
 
-        // Render available hackathons
+        // ...existing code...
+
+        // Fetch and render available hackathons from backend
         const list = document.getElementById('hackathonListParticipant');
-        if (list) {
-            list.innerHTML = DB.hackathons.map(h => `
-                <div class="card" style="padding: 1rem; border-left: 3px solid transparent; opacity: 0.7;">
-                    <div style="display: flex; justify-content: space-between;">
+        try {
+            const res = await fetch(`${API_BASE}/hackathons/`);
+            if (res.ok) {
+                const hackathons = await res.json();
+                list.innerHTML = hackathons.map(h => `
+                    <div class="card" style="padding: 1rem; border-left: 3px solid transparent; opacity: 0.7;">
                         <div>
                             <div style="font-weight: bold; color: var(--text-secondary);">${h.name}</div>
-                            <div style="font-family: var(--font-code); font-size: 0.8rem; color: var(--text-secondary);">CODE: ${h.code}</div>
+                            <div style="font-family: var(--font-code); font-size: 0.8rem; color: var(--text-secondary);">CODE: ${h.invite_code}</div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } else {
+                list.innerHTML = '';
+            }
+        } catch (e) {
+            console.error('Error fetching hackathons:', e);
+            list.innerHTML = '';
         }
+// ...existing code...
     } else {
         // Connected to hackathon - show team info and submission interface
         const h = state.connectedHackathon;
@@ -882,7 +890,7 @@ async function renderParticipantDashboard(container) {
             if (teamsRes.ok) {
                 const teams = await teamsRes.json();
                 if (teams.length > 0) {
-                    // Use stored team_id if available, otherwise use first team
+                    // Use stored team_id if available, otherwise first team
                     if (state.currentTeamId) {
                         teamInfo = teams.find(t => t.id === state.currentTeamId) || teams[0];
                         myTeamId = state.currentTeamId;
