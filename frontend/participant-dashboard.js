@@ -1,10 +1,8 @@
 // Participant Dashboard Specific Logic
 
-function handleLogout() {
-    if (confirm('TERMINATE_SESSION_CONFIRM')) {
-        localStorage.removeItem('currentUser');
-        window.location.href = 'main.html';
-    }
+function terminateSession() {
+    localStorage.removeItem('currentUser');
+    window.location.href = 'main.html';
 }
 
 async function initializeParticipantDashboard() {

@@ -1532,6 +1532,12 @@ async function fetchAppState() {
 // Init fetch
 fetchAppState();
 
+// TERMINATE SESSION
+function terminateSession() {
+    localStorage.removeItem('currentUser');
+    window.location.href = 'main.html';
+}
+
 // Keypress
 document.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
