@@ -1,5 +1,7 @@
 # QuestForge
 
+CodeChef Winter Vacation Project by Sarvesh, Darshan, and Anush
+
 QuestForge is a lightweight full‑stack hackathon management platform (prototype). It pairs a FastAPI backend (SQLAlchemy models + Pydantic schemas) with a static frontend UI. The repo contains developer tooling for local development, demo data, and simple DB setup scripts.
 
 This README gives a concise, contextual guide for developers to run, extend, and deploy the project.
@@ -116,7 +118,3 @@ pytest -q
 - Backend entry: [backend/app/main.py](backend/app/main.py)
 - DB config: [backend/app/core/database.py](backend/app/core/database.py)
 - Frontend entry: [frontend/main.html](frontend/main.html)
-
-Tell me which of the above (or other tasks) you want next.
-# questforge
-CodeChef Winter Vacation Project by Sarvesh, Darshan, and Anush
