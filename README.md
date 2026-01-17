@@ -4,8 +4,6 @@ CodeChef Winter Vacation Project by Sarvesh, Darshan, and Anush
 
 QuestForge is a lightweight full‑stack hackathon management platform (prototype). It pairs a FastAPI backend (SQLAlchemy models + Pydantic schemas) with a static frontend UI. The repo contains developer tooling for local development, demo data, and simple DB setup scripts.
 
-This README gives a concise, contextual guide for developers to run, extend, and deploy the project.
-
 **Contents**
 - **Backend**: [backend/](backend) — FastAPI app, routers, SQLAlchemy models, seeding tools
 - **Frontend**: [frontend/](frontend) — static HTML/CSS/JS UI mounted by the backend for demos
@@ -17,7 +15,7 @@ This README gives a concise, contextual guide for developers to run, extend, and
 - Frontend: Vanilla HTML/CSS/JS (static)
 - Testing: pytest
 
-## Quick start (recommended developer flow)
+## Quick start
 
 Prerequisites: Python 3.10+, Git, optional Postgres for production-like testing.
 
@@ -43,7 +41,7 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 
 Visit the OpenAPI docs at `http://127.0.0.1:8000/docs` and the health check at `http://127.0.0.1:8000/health`.
 
-4. Serve frontend (optional)
+4. Serve frontend
 
 The backend mounts a `StaticFiles` directory for the frontend. By default the mount in `app/main.py` points to an absolute path on the original developer machine — update it to the local `frontend` folder before relying on it in your environment.
 
@@ -56,7 +54,7 @@ app.mount('/static', StaticFiles(directory=str(Path(__file__).resolve().parents[
 
 After that, the frontend will be available at `http://127.0.0.1:8000/static/main.html`.
 
-## Project structure (high level)
+## Project structure
 
 - `backend/`
 	- `app/main.py` — FastAPI application, router registration, DB table creation
@@ -75,7 +73,7 @@ After that, the frontend will be available at `http://127.0.0.1:8000/static/main
 - Secrets: `app/core/auth.py` contains a demo `SECRET_KEY`. Move secrets to env vars and never commit them.
 - Static mounting: `app/main.py` contains an absolute path to the original frontend directory. Change it to a workspace-relative path (see example above) so the app works across machines and in containers.
 
-## API overview (high level)
+## API overview
 
 - `GET /health` — health check
 - `POST /auth/register` — register user (see `app/routes/auth.py`)
@@ -99,12 +97,12 @@ cd backend
 pytest -q
 ```
 
-## Docker / deployment notes (suggested)
+## Docker / deployment notes
 
 - Create a small `Dockerfile` for backend using `python:3.10-slim`, install `requirements.txt`, set `ENV DATABASE_URL` and run `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 - Use a separate Postgres container and set `DATABASE_URL` to point to the Postgres service.
 
-## Security & hardening (next steps)
+## Security & hardening
 
 - Replace hardcoded `SECRET_KEY` with an environment variable and rotate regularly.
 - Use HTTPS in production and configure CORS tightly rather than `allow_origins=['*']`.
