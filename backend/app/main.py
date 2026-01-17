@@ -1,3 +1,4 @@
+import utils.session
 from fastapi import FastAPI
 from app.core.database import Base, engine
 from app.routes import hackathon, team, leaderboard
